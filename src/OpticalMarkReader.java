@@ -20,6 +20,18 @@ public class OpticalMarkReader {
 	 */
 	public AnswerSheet processPageImage(PImage image) {
 		image.filter(PImage.GRAY);
+		image.loadPixels();
+
+		AnswerSheet sheet = new AnswerSheet(38, 4);
+
+		for (int r = 0; r < image.height; r++) {
+			for (int c = 0; c < image.width; c++) {
+				sheet.addAnswer(determineBubble(image, r, c, 8, 8, 5), r, c);
+
+			}
+		}
+
+		return sheet;
 
 	}
 
@@ -30,53 +42,38 @@ public class OpticalMarkReader {
 		return image.pixels[index] & 255;
 	}
 
-	public String[] determineBubble(PImage image, int r, int c, int kernelWidth, int kernelHeight, int numBubbles) {
-		int firstRectWidth = 195, secondRectWidth = 186, answerHeight = 20;
-		int offset = 138;
+	public String determineBubble(PImage image, int r, int c, int kernelWidth, int kernelHeight, int numBubbles) {
+		int rectWidth = 195;
 
-		int[] firstIndexes = getDivided(firstRectWidth, numBubbles);
-		int[] secondIndexes = getDivided(secondRectWidth, numBubbles);
+		String answer = "";
 
-		String[] answers = new String[2];
+		int[] indexes = getDivided(rectWidth, numBubbles);
 
-		for (int i = 0; i < answers.length; i++) {
-			for (int row = 0; row < kernelHeight; row++) {
-				for (int col = 0; col < kernelWidth; col++) {
-					int[][] kernel = getKernel(image, row, col, kernelWidth, kernelHeight);
-					if (isAnswerRow(kernel, 5)) {
-						int[][] answerRow;
-						String answer;
-						if(i < 1) {
-						 answerRow = getKernel(image, row, col + offset, firstRectWidth, answerHeight);
-						  answer = getAnswer(answerRow, firstIndexes);
-						} else {
-							offset = 721;
-							answerRow = getKernel(image, row, col + offset, secondRectWidth, answerHeight);
-							answer = getAnswer(answerRow, secondIndexes);
-						}
-						
-						answers[i] = answer;
-					}
+		for (int row = r; row < r + kernelHeight; row++) {
+			for (int col = c; col < c + kernelWidth; col++) {
+				int[][] kernel = getKernel(image, row, col, kernelWidth, kernelHeight);
+				if (isAnswerRow(kernel, 5)) {
+					answer = getAnswer(kernel, indexes);
 				}
 			}
 		}
-		
-		return answers;
+
+		return answer;
 	}
 
-	private String getAnswer(int[][] firstAnswerRow, int[] firstIndexes) {
+	private String getAnswer(int[][] answerRow, int[] indexes) {
 		int sum = 0;
 		int startIndex = 0;
 
-		int threshold = 100;
-
-		for (int i = 0; i < firstIndexes.length; i++) {
-			for (int r = startIndex; r < firstAnswerRow.length; r++) {
-				for (int c = 0; c < firstIndexes[i]; c++) {
-					sum += firstAnswerRow[r][c];
+		for (int i = 0; i < indexes.length; i++) {
+			for (int r = startIndex; r < answerRow.length; r++) {
+				for (int c = 0; c < indexes[i]; c++) {
+					if (answerRow[r][c] == 0) {
+						sum += answerRow[r][c];
+					}
 				}
 			}
-			if (sum <= threshold) {
+			if (sum >= 0) {
 				if (i == 0) {
 					return "A";
 				}
@@ -95,7 +92,7 @@ public class OpticalMarkReader {
 
 			}
 
-			startIndex = firstIndexes[i];
+			startIndex = indexes[i];
 		}
 		return "0";
 	}

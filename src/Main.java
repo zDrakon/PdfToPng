@@ -37,7 +37,24 @@ public class Main {
 
 			AnswerSheet answers = markReader.processPageImage(image);
 
-			// do something with answers
+			answers.exportCSV();
+			itemAnalysis(scoredSheets);
 		}
+	}
+
+	private static void itemAnalysis(ArrayList<AnswerSheet> scoredSheets) {
+		AnswerSheet key = scoredSheets.get(0);
+		int[] incorrect = new int[26];
+		for(int i = 1; i < scoredSheets.size(); i++) {
+			AnswerSheet a = scoredSheets.get(i);
+			incorrect = a.compare(key);
+			
+		}
+		int[][] analyze = new int[26][2];
+		for(int r = 0; r<analyze.length;r++){
+			analyze[r][0] = incorrect[r];
+			analyze[r][1] = incorrect[r]/scoredSheets.size()-1;
+		}
+		
 	}
 }
